@@ -6,6 +6,8 @@
                 "${workspaceFolder}/**",
                 "${RTE_SDK}/${RTE_TARGET}/**"
             ],
+            "cStandard": "gnu23",
+            "cppStandard": "gnu++23",
             "defines": [],
             "intelliSenseMode": "linux-gcc-x64"
         }

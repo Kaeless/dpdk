@@ -16,6 +16,6 @@ struct arp_entry{
 
 struct arp_table{
 
-}
+};
 
 #endif
