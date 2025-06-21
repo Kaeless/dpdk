@@ -1,0 +1,12 @@
+{
+    "files.associations": {
+        "rte_mempool.h": "c",
+        "inttypes.h": "c",
+        "dpdk.h": "c",
+        "rte_ethdev.h": "c",
+        "inet.h": "c",
+        "rte_mbuf.h": "c",
+        "rte_eal.h": "c",
+        "dpdk_init.h": "c"
+    }
+}
