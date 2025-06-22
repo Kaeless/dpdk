@@ -7,6 +7,8 @@
         "inet.h": "c",
         "rte_mbuf.h": "c",
         "rte_eal.h": "c",
-        "dpdk_init.h": "c"
-    }
+        "dpdk_init.h": "c",
+        "rte_timer.h": "c",
+        "rte_ether.h": "c"
+    },
 }

@@ -2,10 +2,10 @@
 # Copyright(c) 2010-2014 Intel Corporation
 
 # binary name
-APP = dpdk_icmp
+APP = dpdk_arp_table
 
 # all source are stored in SRCS-y
-SRCS-y := src/icmp.c
+SRCS-y := src/arp_table.c ../init/dpdk_init.c
 
 # Build using pkg-config variables if possible
 ifeq ($(shell pkg-config --exists libdpdk && echo 0),0)
@@ -56,8 +56,10 @@ please change the definition of the RTE_TARGET environment variable)
 endif
 
 CFLAGS += -O3
+CFLAGS += -I$(CURDIR)/..
 CFLAGS += -DALLOW_EXPERIMENTAL_API
 CFLAGS += $(WERROR_FLAGS)
+
 
 include $(RTE_SDK)/mk/rte.extapp.mk
 endif
