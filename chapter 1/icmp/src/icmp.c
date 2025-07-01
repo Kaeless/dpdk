@@ -322,13 +322,14 @@ int main(int argc, char *argv[]) {
 				struct rte_arp_hdr *ahdr = rte_pktmbuf_mtod_offset(mbufs[i], 
 					struct rte_arp_hdr *, sizeof(struct rte_ether_hdr));
 
-				
+#if ENABLE_PRINT				
 				struct in_addr addr;
 				addr.s_addr = ahdr->arp_data.arp_tip;
 				printf("arp ---> src: %s ", inet_ntoa(addr));
 
 				addr.s_addr = gLocalIp;
 				printf(" local: %s \n", inet_ntoa(addr));
+#endif
 
 				if (ahdr->arp_data.arp_tip == gLocalIp) {
 
