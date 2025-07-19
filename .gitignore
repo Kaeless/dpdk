@@ -1,0 +1,35 @@
+# 编译/构建输出
+build/
+dist/
+out/
+target/
+*.o
+*.class
+
+# Node.js 项目
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Python 项目
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.env
+.venv
+
+# 日志文件
+*.log
+logs/
+tmp/
+
+# IDE 文件
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# 操作系统文件
+.DS_Store
+Thumbs.db

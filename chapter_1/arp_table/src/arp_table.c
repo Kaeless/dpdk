@@ -45,7 +45,6 @@ arp_table_timer_cb(__attribute__((unused)) struct rte_timer *tim,void *arg)
 		rte_pktmbuf_free(arpbuf);
 	}
 	printf("%s() on lcore %u\n", __func__, lcore_id);
-
 }
 
 
