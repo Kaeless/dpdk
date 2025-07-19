@@ -51,7 +51,6 @@ arp_table_timer_cb(__attribute__((unused)) struct rte_timer *tim,void *arg)
 int main(int argc, char *argv[]){
 	if (rte_eal_init(argc, argv) < 0) {
 		rte_exit(EXIT_FAILURE, "Error with EAL init\n");
-		
 	}
 	struct rte_mempool *mbuf_pool = rte_pktmbuf_pool_create("mbuf pool", NUM_MBUFS,
 		0, 0, RTE_MBUF_DEFAULT_BUF_SIZE, rte_socket_id());

@@ -1,0 +1,112 @@
+#include "arp.h"
+
+static struct arp_table* arp_table_instance(void) {
+	if (arpt == NULL) {
+		arpt = (struct arp_table *)rte_malloc("arp table", sizeof(struct arp_table), 0);
+		if (arpt == NULL) {
+			rte_exit(EXIT_FAILURE, "rte_malloc arp table failed\n");
+		}
+		memset(arpt, 0, sizeof(struct arp_table));
+	}
+	return arpt;
+}
+
+
+static uint8_t* get_dst_macaddr(uint32_t dip) {
+
+	struct arp_entry *iter;
+	struct arp_table *table = arp_table_instance();
+
+	for (iter = table->entries;iter != NULL;iter = iter->next) {
+		if (dip == iter->ip) {
+			return iter->hwaddr;
+		}
+	}
+
+	return NULL;
+}
+
+/**
+ * @brief 启动ARP定时器
+ * 
+ * @param arg 传入mbuf_pool
+ */
+static void arp_table_timer_cb(__attribute__((unused)) struct rte_timer *tim,void *arg) 
+{
+	struct rte_mempool *mbuf_pool = (struct rte_mempool *)arg;
+
+	unsigned lcore_id = rte_lcore_id();
+	struct rte_ether_addr broadcast_addr = {{0xFF,0xFF,0xFF,0xFF,0xFF,0xFF}};
+	struct rte_mbuf* arpbuf = NULL;
+
+	//掩码默认为255.255.255.0
+	for(int i = 1;i<254;i++){
+		uint32_t dstip = (gLocalIp & 0x00FFFFFF) | (0xFF000000 & (i<<24));
+		uint8_t* dstmac = get_dst_macaddr(dstip);
+
+#if ENABLE_PRINT
+		struct in_addr addr;
+		addr.s_addr = gLocalIp;
+		printf("arp send src_ip:%s ",inet_ntoa(addr));
+		addr.s_addr = dstip;
+		printf("dst_ip:%s \n",inet_ntoa(addr));
+#endif
+		
+		if(dstmac == NULL){
+			arpbuf = send_arp(mbuf_pool,RTE_ARP_OP_REQUEST,gLocalMac->addr_bytes, broadcast_addr.addr_bytes, 
+				gLocalIp,dstip);
+		}
+		else{
+			arpbuf = send_arp(mbuf_pool,RTE_ARP_OP_REQUEST,gLocalMac->addr_bytes, dstmac, 
+				gLocalIp, dstip);
+		}
+		rte_eth_tx_burst(gDpdkPortId, 0, &arpbuf, 1);
+		rte_pktmbuf_free(arpbuf);
+	}
+	printf("%s() on lcore %u\n", __func__, lcore_id);
+}
+
+
+static int encode_arp_pkt(uint8_t *msg, uint16_t arp_opcode, uint8_t *src_mac, uint8_t *dst_mac, uint32_t sip, uint32_t dip) {
+
+	// 1 ethhdr
+	struct rte_ether_hdr *eth = (struct rte_ether_hdr *)msg;
+	rte_memcpy(eth->s_addr.addr_bytes, src_mac, RTE_ETHER_ADDR_LEN);
+	rte_memcpy(eth->d_addr.addr_bytes, dst_mac, RTE_ETHER_ADDR_LEN);
+	eth->ether_type = htons(RTE_ETHER_TYPE_ARP);
+
+	// 2 arp 
+	struct rte_arp_hdr *arp = (struct rte_arp_hdr *)(eth + 1);
+	arp->arp_hardware = htons(1);
+	arp->arp_protocol = htons(RTE_ETHER_TYPE_IPV4);
+	arp->arp_hlen = RTE_ETHER_ADDR_LEN;
+	arp->arp_plen = sizeof(uint32_t);
+	arp->arp_opcode = rte_cpu_to_be_16(arp_opcode);
+
+	rte_memcpy(arp->arp_data.arp_sha.addr_bytes, src_mac, RTE_ETHER_ADDR_LEN);
+	rte_memcpy( arp->arp_data.arp_tha.addr_bytes, dst_mac, RTE_ETHER_ADDR_LEN);
+
+	arp->arp_data.arp_sip = sip;
+	arp->arp_data.arp_tip = dip;
+	
+	return 0;
+
+}
+
+static struct rte_mbuf* send_arp(struct rte_mempool *mbuf_pool,uint16_t arp_opcode, uint8_t *src_mac, uint8_t *dst_mac, uint32_t sip, uint32_t dip) {
+
+	const unsigned total_length = sizeof(struct rte_ether_hdr) + sizeof(struct rte_arp_hdr);
+
+	struct rte_mbuf* mbuf = rte_pktmbuf_alloc(mbuf_pool);
+	if (!mbuf) {
+		rte_exit(EXIT_FAILURE, "rte_pktmbuf_alloc\n");
+	}
+
+	mbuf->pkt_len = total_length;
+	mbuf->data_len = total_length;
+
+	uint8_t *pkt_data = rte_pktmbuf_mtod(mbuf, uint8_t *);
+	encode_arp_pkt(pkt_data,arp_opcode,src_mac,dst_mac,sip,dip);
+
+	return mbuf;
+}
