@@ -46,17 +46,17 @@ struct arp_table {
 
 
 static struct arp_table *arpt = NULL;
-static struct arp_table* arp_table_instance(void);
-
-static uint8_t* get_dst_macaddr(uint32_t dip);
-
-static struct rte_mbuf* send_arp(struct rte_mempool *mbuf_pool,uint16_t arp_opcode, uint8_t *src_mac, uint8_t *dst_mac, uint32_t sip, uint32_t dip);
 
 /**
  * @brief 定时发送ARP探测包，调用send_arp函数
  * 
  * @param arg 
  */
-static void arp_table_timer_cb(__attribute__((unused)) struct rte_timer *tim,void *arg);
+void arp_table_timer_cb(__attribute__((unused)) struct rte_timer *tim,void *arg);
 
+struct rte_mbuf* send_arp(struct rte_mempool *mbuf_pool,uint16_t arp_opcode, uint8_t *src_mac, uint8_t *dst_mac, uint32_t sip, uint32_t dip);
+
+uint8_t* get_dst_macaddr(uint32_t dip);
+
+struct arp_table* arp_table_instance(void);
 #endif

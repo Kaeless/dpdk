@@ -19,13 +19,11 @@
 #define BURST_SIZE 32
 
 #define MAKE_IPV4_ADDR(a, b, c, d) (a + (b<<8) + (c<<16) + (d<<24))
-static uint32_t gLocalIp = MAKE_IPV4_ADDR(192, 168, 1, 120);
-static struct rte_ether_addr gLocalMac[RTE_ETHER_ADDR_LEN];
-
 #define ENABLE_PRINT 1
 
-int gDpdkPortId = 0;
-
+extern int gDpdkPortId;
+extern uint32_t gLocalIp;
+extern struct rte_ether_addr gLocalMac[RTE_ETHER_ADDR_LEN];
 
 struct inout_ring{
     struct rte_ring* in_ring;

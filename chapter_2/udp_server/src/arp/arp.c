@@ -1,6 +1,6 @@
 #include "arp.h"
 
-static struct arp_table* arp_table_instance(void) {
+struct arp_table* arp_table_instance(void) {
 	if (arpt == NULL) {
 		arpt = (struct arp_table *)rte_malloc("arp table", sizeof(struct arp_table), 0);
 		if (arpt == NULL) {
@@ -12,7 +12,7 @@ static struct arp_table* arp_table_instance(void) {
 }
 
 
-static uint8_t* get_dst_macaddr(uint32_t dip) {
+uint8_t* get_dst_macaddr(uint32_t dip) {
 
 	struct arp_entry *iter;
 	struct arp_table *table = arp_table_instance();
@@ -31,7 +31,7 @@ static uint8_t* get_dst_macaddr(uint32_t dip) {
  * 
  * @param arg 传入mbuf_pool
  */
-static void arp_table_timer_cb(__attribute__((unused)) struct rte_timer *tim,void *arg) 
+void arp_table_timer_cb(__attribute__((unused)) struct rte_timer *tim,void *arg) 
 {
 	struct rte_mempool *mbuf_pool = (struct rte_mempool *)arg;
 
@@ -93,7 +93,7 @@ static int encode_arp_pkt(uint8_t *msg, uint16_t arp_opcode, uint8_t *src_mac, u
 
 }
 
-static struct rte_mbuf* send_arp(struct rte_mempool *mbuf_pool,uint16_t arp_opcode, uint8_t *src_mac, uint8_t *dst_mac, uint32_t sip, uint32_t dip) {
+struct rte_mbuf* send_arp(struct rte_mempool *mbuf_pool,uint16_t arp_opcode, uint8_t *src_mac, uint8_t *dst_mac, uint32_t sip, uint32_t dip) {
 
 	const unsigned total_length = sizeof(struct rte_ether_hdr) + sizeof(struct rte_arp_hdr);
 
@@ -110,3 +110,4 @@ static struct rte_mbuf* send_arp(struct rte_mempool *mbuf_pool,uint16_t arp_opco
 
 	return mbuf;
 }
+

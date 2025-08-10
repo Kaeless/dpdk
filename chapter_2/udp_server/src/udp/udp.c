@@ -51,7 +51,7 @@ static int encode_udp_pkt(uint8_t *msg, unsigned char *data, uint16_t total_len,
 }
 
 
-static struct rte_mbuf * send_udp(struct rte_mempool *mbuf_pool, uint8_t *data, uint16_t length,struct ether_addr src_addr,struct ether_addr dst_addr) {
+struct rte_mbuf * send_udp(struct rte_mempool *mbuf_pool, uint8_t *data, uint16_t length,struct ether_addr src_addr,struct ether_addr dst_addr) {
 
 	// mempool --> mbuf
 

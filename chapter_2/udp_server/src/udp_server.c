@@ -4,7 +4,20 @@
 #include "udp/udp.h"
 #include "multi_thread/multi_thread.h"
 
-int udp_server_entry(int argc,char* argv[]){
+/*
+    实现五个udp api
+    1.socket --> nsocket
+    2.bind --> nbind
+    3.recvfrom --> nrecvfrom
+    4.sendto --> nsendto
+    5.close --> nclose
+*/
+
+
+
+
+
+static int udp_server_entry(void){
     int connfd = socket(AF_INET,SOCK_DGRAM,0);
     if(connfd == -1){
         rte_exit(EXIT_FAILURE,"sockfd failed\n");
@@ -56,7 +69,7 @@ int main(int argc,char* argv[]){
 	if(rte_eth_macaddr_get(gDpdkPortId,gLocalMac)<0){
 		rte_exit(EXIT_FAILURE, "Could not get NIC mac address\n");
 	}
-	print_ether_addr("dpdk NIC src_mac:",gLocalMac);
+    print_ether_addr("dpdk NIC src_mac:",gLocalMac);
 
     //ring buffer init
     struct inout_ring *ring = ringInstance();
@@ -70,6 +83,7 @@ int main(int argc,char* argv[]){
         ring->out_ring = rte_ring_create("out ring",RING_SIZE,rte_socket_id(),0);
     }
 
+
     //arp timer init
 	rte_timer_subsystem_init();
 
@@ -80,8 +94,17 @@ int main(int argc,char* argv[]){
 	unsigned lcore_id = rte_lcore_id();
 	rte_timer_reset(&arp_timer, hz*10, PERIODICAL, lcore_id, arp_table_timer_cb, mbuf_pool);
 
+
     //DPDK multi_thread
-    rte_eal_remote_launch(pkt_process, mbuf_pool, rte_get_next_lcore(lcore_id,1,0));
+    //packet process thread
+    // lcore_id = rte_get_next_lcore(lcore_id, 1, 0);
+    // rte_eal_remote_launch(pkt_process, mbuf_pool, rte_get_next_lcore(lcore_id,1,0));
+
+    //udp server thread
+    // lcore_id = rte_get_next_lcore(lcore_id, 1, 0);
+    // rte_eal_remote_launch(udp_server_entry, mbuf_pool, rte_get_next_lcore(lcore_id,1,0));
+
+    print_ether_addr("dpdk NIC src_mac:",gLocalMac);
 
     while(1){
         //rx
@@ -100,7 +123,10 @@ int main(int argc,char* argv[]){
         if(num_send > 0){
             rte_eth_tx_burst(gDpdkPortId,0,&tx,num_send);
         }
-
+        unsigned i = 0;
+        for (i = 0;i < num_send;i ++) {
+            rte_pktmbuf_free(tx[i]);
+        }
         //timer
 
     }

@@ -1,30 +1,43 @@
-# SPDX-License-Identifier: BSD-3-Clause
-# Copyright(c) 2010-2014 Intel Corporation
-
-# binary name
-APP = udp_server
-
-# all source are stored in SRCS-y
-SRCS-y := src/udp_server.c
-
+# 必须先定义DPDK的安装路径
 ifeq ($(RTE_SDK),)
-$(error "Please define RTE_SDK environment variable")
+$(error "请设置RTE_SDK环境变量指向DPDK安装目录，或在Makefile中直接定义")
 endif
 
-# Default target, detect a build directory, by looking for a path with a .config
-RTE_TARGET ?= $(notdir $(abspath $(dir $(firstword $(wildcard $(RTE_SDK)/*/.config)))))
+# DPDK目标平台（19.11版本仍支持linuxapp）
+RTE_TARGET ?= x86_64-native-linuxapp-gcc
 
+# 引入DPDK变量定义
 include $(RTE_SDK)/mk/rte.vars.mk
 
-ifneq ($(CONFIG_RTE_EXEC_ENV_LINUX),y)
-$(error This application can only operate in a linux environment, \
-please change the definition of the RTE_TARGET environment variable)
-endif
+# 源文件目录
+SRC_DIR = ../src
+BUILD_DIR = build
 
-CFLAGS += -O3
-CFLAGS += -I$(CURDIR)/../src
-CFLAGS += -DALLOW_EXPERIMENTAL_API
-CFLAGS += $(WERROR_FLAGS)
+# DPDK约定：指定可执行文件名和源文件
+APP = udp_server
+# SRCS-y := $(shell find $(SRC_DIR) -name "*.c")  # 用SRCS-y而非SRCS
 
+SRCS-y := src/udp_server.c \
+			src/arp/arp.c \
+			src/icmp/icmp.c \
+			src/init/dpdk_init.c \
+			src/multi_thread/pkt_process.c \
+			src/udp/udp.c \
 
+# 编译选项
+CFLAGS += -I$(SRC_DIR) -Wall -O3 -Wno-unused-function
+LDFLAGS += -lpthread
+
+# 指定输出目录（可选）
+RTE_OUTPUT := $(BUILD_DIR)
+
+# DPDK应用程序编译规则（必须放在最后）
 include $(RTE_SDK)/mk/rte.extapp.mk
+
+# 删除以下内容
+clean:
+	rm -rf $(BUILD_DIR)
+	@echo "已清理所有生成文件"
+
+# 伪目标
+.PHONY: all clean

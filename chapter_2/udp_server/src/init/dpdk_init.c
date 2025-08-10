@@ -1,5 +1,10 @@
 #include "dpdk_init.h"
 
+
+int gDpdkPortId = 0;
+uint32_t gLocalIp = MAKE_IPV4_ADDR(192, 168, 1, 120);
+struct rte_ether_addr gLocalMac[RTE_ETHER_ADDR_LEN];
+
 /**
  * @brief 初始化DPDK端口
  * @param mbuf_pool DPDK 线程池

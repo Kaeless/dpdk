@@ -65,7 +65,7 @@ static void encode_icmp_pkt(uint8_t *pkt_data,uint8_t* src_mac,uint8_t* dst_mac,
 #endif
 }
 
-static struct rte_mbuf* send_icmp(struct rte_mempool *mbuf_pool,uint8_t* src_mac,uint8_t* dst_mac,
+struct rte_mbuf* send_icmp(struct rte_mempool *mbuf_pool,uint8_t* src_mac,uint8_t* dst_mac,
     uint32_t sip,uint32_t dip,rte_be16_t icmp_ident,rte_be16_t icmp_seq_nb){
 
     const unsigned total_len = sizeof(struct rte_ether_hdr)+sizeof(struct rte_ipv4_hdr)+sizeof(struct rte_icmp_hdr);
