@@ -34,6 +34,7 @@ int pkt_process(void *arg){
             }
         }
     }
+    return 0;
 }
 
 void arp_process(struct rte_mempool *mbuf_pool,struct rte_mbuf *mbuf,struct inout_ring *ring){

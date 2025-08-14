@@ -17,7 +17,7 @@
 
 
 
-static int udp_server_entry(void){
+static int udp_server_entry(void* arg){
     int connfd = socket(AF_INET,SOCK_DGRAM,0);
     if(connfd == -1){
         rte_exit(EXIT_FAILURE,"sockfd failed\n");
@@ -97,14 +97,12 @@ int main(int argc,char* argv[]){
 
     //DPDK multi_thread
     //packet process thread
-    // lcore_id = rte_get_next_lcore(lcore_id, 1, 0);
-    // rte_eal_remote_launch(pkt_process, mbuf_pool, rte_get_next_lcore(lcore_id,1,0));
+    lcore_id = rte_get_next_lcore(lcore_id, 1, 0);
+    rte_eal_remote_launch(pkt_process, mbuf_pool, lcore_id);
 
     //udp server thread
-    // lcore_id = rte_get_next_lcore(lcore_id, 1, 0);
-    // rte_eal_remote_launch(udp_server_entry, mbuf_pool, rte_get_next_lcore(lcore_id,1,0));
-
-    print_ether_addr("dpdk NIC src_mac:",gLocalMac);
+    lcore_id = rte_get_next_lcore(lcore_id, 1, 0);
+    rte_eal_remote_launch(udp_server_entry, mbuf_pool, lcore_id);
 
     while(1){
         //rx

@@ -51,6 +51,19 @@ static struct ether_addr{
     uint16_t port;
 };
 
+
+struct localhost{
+
+    int fd;
+
+    uint8_t localmac[RTE_ETHER_ADDR_LEN];
+    uint32_t localip;
+    uint16_t localport;
+
+    int protocol;
+    
+};
+
 static const struct rte_eth_conf port_conf_default = {
     .rxmode = {.max_rx_pkt_len = RTE_ETHER_MAX_LEN}};
 
