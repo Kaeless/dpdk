@@ -14,8 +14,111 @@
 */
 
 
+int get_fd_frombitmap(){
+    int fd = DEFAULT_FD;
+    return fd;
+}
+
+struct localhost *get_hostinfo_fromfd(int sockfd){
+    struct localhost *host;
+    for(host = lhost;host!=NULL;host = host->next){
+        if(host->fd == sockfd){
+            return host;
+        }
+    }
+    return NULL;
+}
 
 
+/**
+ * @brief create socket
+ * 
+ * @param domain 
+ * @param type 
+ * @param protocol 
+ * @return int 
+ */
+int socket(int domain,int type,int protocol){
+
+    int fd = get_fd_frombitmap();
+
+    struct localhost *host = rte_malloc("localhost",sizeof(struct localhost),0);
+    if(host == NULL){
+        rte_exit(EXIT_FAILURE,"create ring buffer failed");
+    }
+
+    host->fd = fd;
+    if(type == SOCK_DGRAM){
+        host->protocol = IPPROTO_UDP;
+    }
+    else if(type == SOCK_STREAM){
+        host->protocol = IPPROTO_TCP;
+    }
+
+    //多线程设置sendbuf与recvbuf
+    host->recvbuf = rte_ring_create("recv buffer",RING_SIZE,rte_socket_id(),0);
+    if(host->recvbuf == NULL){
+        rte_free(host);
+        rte_exit(EXIT_FAILURE,"create recv buffer failed");
+    }
+
+    host->sendbuf = rte_ring_create("send buffer",RING_SIZE,rte_socket_id(),0);
+    if(host->sendbuf == NULL){
+        rte_ring_free(host->recvbuf);
+        rte_free(host);
+        rte_exit(EXIT_FAILURE,"create recv buffer failed");
+    }
+
+    LL_ADD(host,lhost);
+    return 0;
+}
+
+int bind(int fd,const struct sockaddr *localaddr,socklen_t addr_len){
+    struct localhost *host = get_hostinfo_fromfd(fd);
+    if(host == NULL) rte_exit(EXIT_FAILURE,"cannot find fd");
+
+    struct sockaddr_in *laddr = (struct sockaddr_in *)localaddr;
+    host->localport = laddr->sin_port;
+    rte_memcpy(&host->localip,&laddr->sin_addr.s_addr,sizeof(uint32_t));
+    rte_memcpy(&host->localmac,gLocalMac,RTE_ETHER_ADDR_LEN);
+
+    return 0;
+}
+
+
+/**
+ * @brief recv分为三步:1.通过fd找到对应的recvbuffer 2.从recvbuffer拿到数据 3.将数据发送出去
+ * 
+ * @param fd 
+ * @param buf 
+ * @param buf_size 
+ * @param flag 
+ * @param src_addr 
+ * @param addr_len 
+ * @return ssize_t 
+ */
+ssize_t recvfrom(int fd,void *buf,size_t buf_size,int flag,struct sockaddr *src_addr,socklen_t *addr_len){
+    
+
+
+}
+
+ssize_t sendto(int fd,void *buf,size_t buf_size,int flag,struct sockaddr *dst_addr,socklen_t *addr_len){
+
+}
+
+int close(int fd){
+    struct localhost *host = get_hostinfo_fromfd(fd);
+    if(host == NULL) rte_exit(EXIT_FAILURE,"cannot find fd");
+    if(host->recvbuf){
+        rte_ring_free(host->recvbuf);
+    }
+    if(host->sendbuf){
+        rte_ring_free(host->sendbuf);
+    }
+
+    LL_REMOVE(host,lhost);
+}
 
 static int udp_server_entry(void* arg){
     int connfd = socket(AF_INET,SOCK_DGRAM,0);

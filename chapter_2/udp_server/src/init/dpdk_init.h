@@ -17,10 +17,12 @@
 #define BUFFER_SIZE 2048
 #define RING_SIZE 1024
 #define BURST_SIZE 32
+#define DEFAULT_FD 3
 
 #define MAKE_IPV4_ADDR(a, b, c, d) (a + (b<<8) + (c<<16) + (d<<24))
 #define ENABLE_PRINT 1
 
+extern struct localhost *lhost;
 extern int gDpdkPortId;
 extern uint32_t gLocalIp;
 extern struct rte_ether_addr gLocalMac[RTE_ETHER_ADDR_LEN];
@@ -62,6 +64,12 @@ struct localhost{
 
     int protocol;
     
+    struct rte_ring *sendbuf;
+    struct rte_ring *recvbuf;
+
+    //多个连接的localhost
+    struct localhost *prev;
+    struct localhost *next;
 };
 
 static const struct rte_eth_conf port_conf_default = {

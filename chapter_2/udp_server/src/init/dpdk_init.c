@@ -1,6 +1,6 @@
 #include "dpdk_init.h"
 
-
+struct localhost *lhost = NULL;
 int gDpdkPortId = 0;
 uint32_t gLocalIp = MAKE_IPV4_ADDR(192, 168, 1, 120);
 struct rte_ether_addr gLocalMac[RTE_ETHER_ADDR_LEN];
