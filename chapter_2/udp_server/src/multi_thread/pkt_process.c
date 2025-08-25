@@ -117,7 +117,6 @@ void icmp_process(struct rte_mempool *mbuf_pool,struct rte_mbuf *mbuf,struct ino
 
 void udp_process(struct rte_mbuf *mbuf,struct rte_ipv4_hdr *iphdr){
 
-
         struct rte_udp_hdr *udphdr = (struct rte_udp_hdr *)(iphdr + 1);
 
         uint16_t length = ntohs(udphdr->dgram_len);
@@ -149,7 +148,8 @@ void udp_process(struct rte_mbuf *mbuf,struct rte_ipv4_hdr *iphdr){
         ol->data = rte_malloc("unsigned char*",ol->length-sizeof(struct rte_udp_hdr),0);
         if(ol->data == NULL){
             rte_pktmbuf_free(mbuf);
-            
+            rte_free(ol);
+            rte_exit(EXIT_FAILURE,"cannot create data");
         }
 
         
