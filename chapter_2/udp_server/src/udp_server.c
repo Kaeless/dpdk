@@ -98,12 +98,16 @@ int bind(int fd,const struct sockaddr *localaddr,socklen_t addr_len){
  * @return ssize_t 
  */
 ssize_t recvfrom(int fd,void *buf,size_t buf_size,int flag,struct sockaddr *src_addr,socklen_t *addr_len){
+    struct localhost *host = get_hostinfo_fromfd(fd);
+    if(host == NULL) rte_exit(EXIT_FAILURE,"cannot find fd");    
+
     
-
-
 }
 
 ssize_t sendto(int fd,void *buf,size_t buf_size,int flag,struct sockaddr *dst_addr,socklen_t *addr_len){
+    struct localhost *host = get_hostinfo_fromfd(fd);
+    if(host == NULL) rte_exit(EXIT_FAILURE,"cannot find fd");
+
 
 }
 
