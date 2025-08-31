@@ -29,6 +29,10 @@ struct localhost *get_hostinfo_fromfd(int sockfd){
     return NULL;
 }
 
+int get_hostinfor_fromip_port(uint32_t dip,uint16_t port){
+
+}
+
 
 /**
  * @brief create socket
@@ -100,14 +104,12 @@ int bind(int fd,const struct sockaddr *localaddr,socklen_t addr_len){
 ssize_t recvfrom(int fd,void *buf,size_t buf_size,int flag,struct sockaddr *src_addr,socklen_t *addr_len){
     struct localhost *host = get_hostinfo_fromfd(fd);
     if(host == NULL) rte_exit(EXIT_FAILURE,"cannot find fd");    
-
     
 }
 
 ssize_t sendto(int fd,void *buf,size_t buf_size,int flag,struct sockaddr *dst_addr,socklen_t *addr_len){
     struct localhost *host = get_hostinfo_fromfd(fd);
     if(host == NULL) rte_exit(EXIT_FAILURE,"cannot find fd");
-
 
 }
 

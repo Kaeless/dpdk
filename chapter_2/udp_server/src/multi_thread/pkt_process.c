@@ -133,7 +133,6 @@ void udp_process(struct rte_mbuf *mbuf,struct rte_ipv4_hdr *iphdr){
 #endif
 
         //enqueue to recv buffer
-
         struct offload* ol = rte_malloc("offload",sizeof(struct offload),0);
         if(ol == NULL) rte_exit(EXIT_FAILURE,"cannot create offload");
 
