@@ -1,0 +1,38 @@
+[
+  {
+    "directory": "/media/cao/B191196E24F2F267/Code/dpdk/chapter_2/udp_server",
+    "command": "/usr/bin/gcc -Wall -Wextra -O3 -march=native -include rte_config.h -march=corei7 -I/usr/include/dpdk -I/usr/include/libnl3 -I/usr/include/dpdk/../x86_64-linux-gnu/dpdk -I/usr/include/dpdk -Isrc -Wno-address-of-packed-member -MMD -c src/udp_server.c -o build/src/udp_server.o",
+    "file": "/media/cao/B191196E24F2F267/Code/dpdk/chapter_2/udp_server/src/udp_server.c",
+    "output": "/media/cao/B191196E24F2F267/Code/dpdk/chapter_2/udp_server/build/src/udp_server.o"
+  },
+  {
+    "directory": "/media/cao/B191196E24F2F267/Code/dpdk/chapter_2/udp_server",
+    "command": "/usr/bin/gcc -Wall -Wextra -O3 -march=native -include rte_config.h -march=corei7 -I/usr/include/dpdk -I/usr/include/libnl3 -I/usr/include/dpdk/../x86_64-linux-gnu/dpdk -I/usr/include/dpdk -Isrc -Wno-address-of-packed-member -MMD -c src/init/dpdk_init.c -o build/src/init/dpdk_init.o",
+    "file": "/media/cao/B191196E24F2F267/Code/dpdk/chapter_2/udp_server/src/init/dpdk_init.c",
+    "output": "/media/cao/B191196E24F2F267/Code/dpdk/chapter_2/udp_server/build/src/init/dpdk_init.o"
+  },
+  {
+    "directory": "/media/cao/B191196E24F2F267/Code/dpdk/chapter_2/udp_server",
+    "command": "/usr/bin/gcc -Wall -Wextra -O3 -march=native -include rte_config.h -march=corei7 -I/usr/include/dpdk -I/usr/include/libnl3 -I/usr/include/dpdk/../x86_64-linux-gnu/dpdk -I/usr/include/dpdk -Isrc -Wno-address-of-packed-member -MMD -c src/arp/arp.c -o build/src/arp/arp.o",
+    "file": "/media/cao/B191196E24F2F267/Code/dpdk/chapter_2/udp_server/src/arp/arp.c",
+    "output": "/media/cao/B191196E24F2F267/Code/dpdk/chapter_2/udp_server/build/src/arp/arp.o"
+  },
+  {
+    "directory": "/media/cao/B191196E24F2F267/Code/dpdk/chapter_2/udp_server",
+    "command": "/usr/bin/gcc -Wall -Wextra -O3 -march=native -include rte_config.h -march=corei7 -I/usr/include/dpdk -I/usr/include/libnl3 -I/usr/include/dpdk/../x86_64-linux-gnu/dpdk -I/usr/include/dpdk -Isrc -Wno-address-of-packed-member -MMD -c src/icmp/icmp.c -o build/src/icmp/icmp.o",
+    "file": "/media/cao/B191196E24F2F267/Code/dpdk/chapter_2/udp_server/src/icmp/icmp.c",
+    "output": "/media/cao/B191196E24F2F267/Code/dpdk/chapter_2/udp_server/build/src/icmp/icmp.o"
+  },
+  {
+    "directory": "/media/cao/B191196E24F2F267/Code/dpdk/chapter_2/udp_server",
+    "command": "/usr/bin/gcc -Wall -Wextra -O3 -march=native -include rte_config.h -march=corei7 -I/usr/include/dpdk -I/usr/include/libnl3 -I/usr/include/dpdk/../x86_64-linux-gnu/dpdk -I/usr/include/dpdk -Isrc -Wno-address-of-packed-member -MMD -c src/udp/udp.c -o build/src/udp/udp.o",
+    "file": "/media/cao/B191196E24F2F267/Code/dpdk/chapter_2/udp_server/src/udp/udp.c",
+    "output": "/media/cao/B191196E24F2F267/Code/dpdk/chapter_2/udp_server/build/src/udp/udp.o"
+  },
+  {
+    "directory": "/media/cao/B191196E24F2F267/Code/dpdk/chapter_2/udp_server",
+    "command": "/usr/bin/gcc -Wall -Wextra -O3 -march=native -include rte_config.h -march=corei7 -I/usr/include/dpdk -I/usr/include/libnl3 -I/usr/include/dpdk/../x86_64-linux-gnu/dpdk -I/usr/include/dpdk -Isrc -Wno-address-of-packed-member -MMD -c src/pkt_process/pkt_process.c -o build/src/pkt_process/pkt_process.o",
+    "file": "/media/cao/B191196E24F2F267/Code/dpdk/chapter_2/udp_server/src/pkt_process/pkt_process.c",
+    "output": "/media/cao/B191196E24F2F267/Code/dpdk/chapter_2/udp_server/build/src/pkt_process/pkt_process.o"
+  }
+]

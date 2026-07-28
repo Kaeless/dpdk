@@ -3,21 +3,10 @@
 
 #include "init/dpdk_init.h"
 
+/* ---- 函数声明 ---- */
+uint16_t ng_checksum(uint16_t *addr, int count);
 
-/**
- * @brief 封装ICMP数据包并发送
- * 
- * @param mbuf_pool 
- * @param src_mac 
- * @param dst_mac 
- * @param sip 
- * @param dip 
- * @param icmp_ident 
- * @param icmp_seq_nb 
- * @return struct rte_mbuf* 
- */
-struct rte_mbuf* send_icmp(struct rte_mempool *mbuf_pool,uint8_t* src_mac,uint8_t* dst_mac,
-    uint32_t sip,uint32_t dip,rte_be16_t icmp_ident,rte_be16_t icmp_seq_nb);
+struct rte_mbuf *ng_send_icmp(struct rte_mempool *mbuf_pool, uint8_t *dst_mac,
+    uint32_t sip, uint32_t dip, uint16_t id, uint16_t seqnb);
 
-
-#endif
+#endif /* __ICMP_H__ */

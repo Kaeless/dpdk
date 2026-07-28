@@ -3,18 +3,19 @@
 
 #include "init/dpdk_init.h"
 
+/* ---- 函数声明 ---- */
 
-/**
- * @brief 发送UDP数据包
- * 
- * @param mbuf_pool 
- * @param data 
- * @param length 
- * @param src_addr 
- * @param dst_addr 
- * @return struct rte_mbuf* 
- */
-static struct rte_mbuf * send_udp(struct rte_mempool *mbuf_pool, uint8_t *data, 
-    uint16_t length,struct ether_addr src_addr,struct ether_addr dst_addr);
+/* 基础 UDP 包编码/发送 (使用全局 gSrcMac/gDstMac/gSrcIp/gDstIp/gSrcPort/gDstPort) */
+int  ng_encode_udp_pkt(uint8_t *msg, unsigned char *data, uint16_t total_len);
+struct rte_mbuf *ng_send_udp(struct rte_mempool *mbuf_pool, uint8_t *data, uint16_t length);
 
-#endif
+/* 带参数的 UDP 包编码/发送 (UDP app 使用) */
+int ng_encode_udp_apppkt(uint8_t *msg, uint32_t sip, uint32_t dip,
+    uint16_t sport, uint16_t dport, uint8_t *srcmac, uint8_t *dstmac,
+    unsigned char *data, uint16_t total_len);
+
+struct rte_mbuf *ng_udp_pkt(struct rte_mempool *mbuf_pool, uint32_t sip, uint32_t dip,
+    uint16_t sport, uint16_t dport, uint8_t *srcmac, uint8_t *dstmac,
+    uint8_t *data, uint16_t length);
+
+#endif /* __UDP_H__ */

@@ -1,83 +1,116 @@
-
 #ifndef __DPDK_INIT_H__
 #define __DPDK_INIT_H__
 
 #include <rte_eal.h>
 #include <rte_ethdev.h>
-#include <rte_malloc.h>
 #include <rte_mbuf.h>
+#include <rte_malloc.h>
 #include <rte_timer.h>
 #include <rte_ether.h>
+#include <rte_ring.h>
+
+/* DPDK 21.11+ 协议头需要显式包含 */
+#include <rte_ip.h>
+#include <rte_icmp.h>
+#include <rte_arp.h>
+#include <rte_udp.h>
 
 #include <arpa/inet.h>
 #include <string.h>
 #include <stdio.h>
 
-#define NUM_MBUFS (4096 - 1)
-#define BUFFER_SIZE 2048
-#define RING_SIZE 1024
-#define BURST_SIZE 32
-#define DEFAULT_FD 3
+/* ---- 常量定义 ---- */
+#define NUM_MBUFS            (4096 - 1)
+#define BURST_SIZE           32
+#define RING_SIZE            1024
+#define TIMER_RESOLUTION_CYCLES 120000000000ULL
 
-#define MAKE_IPV4_ADDR(a, b, c, d) (a + (b<<8) + (c<<16) + (d<<24))
-#define ENABLE_PRINT 1
+#define MAKE_IPV4_ADDR(a, b, c, d)  (a + (b<<8) + (c<<16) + (d<<24))
 
-extern struct localhost *lhost;
+#define UDP_APP_RECV_BUFFER_SIZE    128
+#define DEFAULT_FD_NUM              3
+
+/* ---- 调试定义 ---- */
+#define ENABLE_ARP_TIMER        0
+#define ENABLE_ARP              1
+#define ARGV_PARSER             0
+
+/* ---- 全局端口 ID ---- */
 extern int gDpdkPortId;
+
+/* ---- 本地 IP 和 MAC ---- */
 extern uint32_t gLocalIp;
-extern struct rte_ether_addr gLocalMac[RTE_ETHER_ADDR_LEN];
+extern uint32_t gSrcIp;
+extern uint32_t gDstIp;
+extern uint8_t  gSrcMac[RTE_ETHER_ADDR_LEN];
+extern uint8_t  gDstMac[RTE_ETHER_ADDR_LEN];
+extern uint16_t gSrcPort;
+extern uint16_t gDstPort;
+extern uint8_t  gDefaultArpMac[RTE_ETHER_ADDR_LEN];
 
-struct inout_ring{
-    struct rte_ring* in_ring;
-    struct rte_ring* out_ring;
+/* ---- Ring buffer 结构 ---- */
+struct inout_ring {
+    struct rte_ring *in;
+    struct rte_ring *out;
 };
 
-static struct inout_ring* rInst = NULL;
-
-
-static struct inout_ring* ringInstance(void){
-    if(rInst == NULL){
-        rInst = rte_malloc("in/out ring",sizeof(struct inout_ring),0);
-        memset(rInst,0,sizeof(struct inout_ring));
-    }
-    return rInst;
-}
-
-/**
- * @brief 包括Mac地址 IP地址 端口号
- * 
- */
-static struct ether_addr{
-    uint8_t mac[RTE_ETHER_ADDR_LEN];
-    uint32_t ip;
-    uint16_t port;
-};
-
-
-struct localhost{
-
+/* ---- localhost: 用户态 socket 抽象 ---- */
+struct localhost {
     int fd;
 
-    uint8_t localmac[RTE_ETHER_ADDR_LEN];
     uint32_t localip;
+    uint8_t  localmac[RTE_ETHER_ADDR_LEN];
     uint16_t localport;
 
-    int protocol;
-    
-    struct rte_ring *sendbuf;
-    struct rte_ring *recvbuf;
+    uint8_t protocol;
 
-    //多个连接的localhost
+    struct rte_ring *sndbuf;
+    struct rte_ring *rcvbuf;
+
     struct localhost *prev;
     struct localhost *next;
+
+    pthread_cond_t  cond;
+    pthread_mutex_t mutex;
 };
 
-static const struct rte_eth_conf port_conf_default = {
-    .rxmode = {.max_rx_pkt_len = RTE_ETHER_MAX_LEN}};
+/* localhost 链表头 */
+extern struct localhost *lhost;
 
-void dpdk_init_port(struct rte_mempool* mbuf_pool);
+/* ---- offload: UDP 数据在 socket 层传递的载体 ---- */
+struct offload {
+    uint32_t sip;
+    uint32_t dip;
+    uint16_t sport;
+    uint16_t dport;
+    int      protocol;
 
-void print_ether_addr(const char* what,const struct rte_ether_addr* eth_addr);
+    unsigned char *data;
+    uint16_t length;
+};
 
+/* ---- 函数声明 ---- */
 
-#endif
+/* 端口初始化 */
+void ng_init_port(struct rte_mempool *mbuf_pool);
+
+/* MAC 地址打印 */
+void print_ethaddr(const char *name, const struct rte_ether_addr *eth_addr);
+
+/* Ring buffer 单例 */
+struct inout_ring *ringInstance(void);
+
+/* localhost 查找 */
+struct localhost *get_hostinfo_fromfd(int sockfd);
+struct localhost *get_hostinfo_fromip_port(uint32_t dip, uint16_t port, uint8_t proto);
+
+/* FD 分配 */
+int get_fd_frombitmap(void);
+
+/* 解析应用层命令行参数 (在 rte_eal_init 之后调用) */
+void app_parse_args(int argc, char *argv[]);
+
+/* 获取应用层设置的端口 */
+uint16_t app_get_port(void);
+
+#endif /* __DPDK_INIT_H__ */

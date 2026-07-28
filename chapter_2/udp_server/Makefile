@@ -1,43 +1,67 @@
-# 必须先定义DPDK的安装路径
-ifeq ($(RTE_SDK),)
-$(error "请设置RTE_SDK环境变量指向DPDK安装目录，或在Makefile中直接定义")
-endif
+# ============================================================
+# DPDK UDP Server Makefile — Ubuntu 22.04 / DPDK 21.11+
+# ============================================================
+#
+# 依赖: sudo apt install libdpdk-dev
+# 使用 pkg-config 管理编译/链接参数
 
-# DPDK目标平台（19.11版本仍支持linuxapp）
-RTE_TARGET ?= x86_64-native-linuxapp-gcc
+APP     := dpdk_udp
+BUILD   := build
 
-# 引入DPDK变量定义
-include $(RTE_SDK)/mk/rte.vars.mk
+# ---- 源文件 (按模块组织) ----
+SRCS := src/udp_server.c              \
+        src/init/dpdk_init.c          \
+        src/arp/arp.c                 \
+        src/icmp/icmp.c               \
+        src/udp/udp.c                 \
+        src/pkt_process/pkt_process.c
 
-# 源文件目录
-SRC_DIR = ../src
-BUILD_DIR = build
+OBJS := $(SRCS:%.c=$(BUILD)/%.o)
+DEPS := $(OBJS:.o=.d)
 
-# DPDK约定：指定可执行文件名和源文件
-APP = udp_server
-# SRCS-y := $(shell find $(SRC_DIR) -name "*.c")  # 用SRCS-y而非SRCS
+# ---- 编译工具链 ----
+CC      := gcc
+PKG_CFG := pkg-config
 
-SRCS-y := src/udp_server.c \
-			src/arp/arp.c \
-			src/icmp/icmp.c \
-			src/init/dpdk_init.c \
-			src/multi_thread/pkt_process.c \
-			src/udp/udp.c \
+# ---- 编译选项 ----
+CFLAGS  := -Wall -Wextra -O3 -march=native
+CFLAGS  += $(shell $(PKG_CFG) --cflags libdpdk)
+CFLAGS  += -Isrc
+CFLAGS  += -Wno-address-of-packed-member
 
-# 编译选项
-CFLAGS += -I$(SRC_DIR) -Wall -O3 -Wno-unused-function
+# ---- 链接选项 ----
+LDFLAGS := $(shell $(PKG_CFG) --libs libdpdk)
 LDFLAGS += -lpthread
 
-# 指定输出目录（可选）
-RTE_OUTPUT := $(BUILD_DIR)
+# ---- 构建规则 ----
+.PHONY: all clean check
 
-# DPDK应用程序编译规则（必须放在最后）
-include $(RTE_SDK)/mk/rte.extapp.mk
+all: $(BUILD)/$(APP)
 
-# 删除以下内容
+# 链接
+$(BUILD)/$(APP): $(OBJS)
+	@mkdir -p $(dir $@)
+	@echo "  LINK    $@"
+	$(CC) $(OBJS) $(LDFLAGS) -o $@
+
+# 编译
+$(BUILD)/%.o: %.c
+	@mkdir -p $(dir $@)
+	@echo "  CC      $<"
+	$(CC) $(CFLAGS) -MMD -c $< -o $@
+
+# 自动依赖
+-include $(DEPS)
+
+# ---- 清理 ----
 clean:
-	rm -rf $(BUILD_DIR)
-	@echo "已清理所有生成文件"
+	rm -rf $(BUILD)
+	@echo "已清理"
 
-# 伪目标
-.PHONY: all clean
+# ---- 环境检查 ----
+check:
+	@echo "=== 环境检查 ==="
+	@echo -n "DPDK 版本:      "; $(PKG_CFG) --modversion libdpdk 2>/dev/null || echo "未安装"
+	@echo -n "GCC 版本:       "; $(CC) --version | head -1
+	@echo -n "Hugepages:      "; grep HugePages_Total /proc/meminfo 2>/dev/null || echo "N/A"
+	@echo "=================="

@@ -1,73 +1,129 @@
 #include "udp.h"
 
-static int encode_udp_pkt(uint8_t *msg, unsigned char *data, uint16_t total_len,struct ether_addr src_addr,struct ether_addr dst_addr) {
+/* ---- 基础 UDP 包编码 (使用全局地址/端口) ---- */
+int ng_encode_udp_pkt(uint8_t *msg, unsigned char *data, uint16_t total_len)
+{
+    /* 1. 以太网头 */
+    struct rte_ether_hdr *eth = (struct rte_ether_hdr *)msg;
+    rte_memcpy(eth->src_addr.addr_bytes, gSrcMac, RTE_ETHER_ADDR_LEN);
+    rte_memcpy(eth->dst_addr.addr_bytes, gDstMac, RTE_ETHER_ADDR_LEN);
+    eth->ether_type = htons(RTE_ETHER_TYPE_IPV4);
 
-	// 1 ethhdr
-	struct rte_ether_hdr *eth = (struct rte_ether_hdr *)msg;
-	rte_memcpy(eth->s_addr.addr_bytes, src_addr.mac, RTE_ETHER_ADDR_LEN);
-	rte_memcpy(eth->d_addr.addr_bytes, dst_addr.mac, RTE_ETHER_ADDR_LEN);
-	eth->ether_type = htons(RTE_ETHER_TYPE_IPV4);
-	
+    /* 2. IP 头 */
+    struct rte_ipv4_hdr *ip = (struct rte_ipv4_hdr *)(msg + sizeof(struct rte_ether_hdr));
+    ip->version_ihl     = 0x45;
+    ip->type_of_service = 0;
+    ip->total_length    = htons(total_len - sizeof(struct rte_ether_hdr));
+    ip->packet_id       = 0;
+    ip->fragment_offset = 0;
+    ip->time_to_live    = 64;
+    ip->next_proto_id   = IPPROTO_UDP;
+    ip->src_addr        = gSrcIp;
+    ip->dst_addr        = gDstIp;
 
-	// 2 iphdr 
-	struct rte_ipv4_hdr *ip = (struct rte_ipv4_hdr *)(msg + sizeof(struct rte_ether_hdr));
-	ip->version_ihl = 0x45;
-	ip->type_of_service = 0;
-	ip->total_length = htons(total_len - sizeof(struct rte_ether_hdr));
-	ip->packet_id = 0;
-	ip->fragment_offset = 0;
-	ip->time_to_live = 64; // ttl = 64
-	ip->next_proto_id = IPPROTO_UDP;
-	ip->src_addr = src_addr.ip;
-	ip->dst_addr = dst_addr.ip;
-	
-	ip->hdr_checksum = 0;
-	ip->hdr_checksum = rte_ipv4_cksum(ip);
+    ip->hdr_checksum = 0;
+    ip->hdr_checksum = rte_ipv4_cksum(ip);
 
-	// 3 udphdr 
+    /* 3. UDP 头 */
+    struct rte_udp_hdr *udp = (struct rte_udp_hdr *)(msg +
+        sizeof(struct rte_ether_hdr) + sizeof(struct rte_ipv4_hdr));
+    udp->src_port = gSrcPort;
+    udp->dst_port = gDstPort;
+    uint16_t udplen = total_len - sizeof(struct rte_ether_hdr) - sizeof(struct rte_ipv4_hdr);
+    udp->dgram_len = htons(udplen);
 
-	struct rte_udp_hdr *udp = (struct rte_udp_hdr *)(msg + sizeof(struct rte_ether_hdr) + sizeof(struct rte_ipv4_hdr));
-	udp->src_port = src_addr.port;
-	udp->dst_port = dst_addr.port;
-	uint16_t udplen = total_len - sizeof(struct rte_ether_hdr) - sizeof(struct rte_ipv4_hdr);
-	udp->dgram_len = htons(udplen);
+    rte_memcpy((uint8_t *)(udp + 1), data, udplen);
 
-	rte_memcpy((uint8_t*)(udp+1), data, udplen);
+    udp->dgram_cksum = 0;
+    udp->dgram_cksum = rte_ipv4_udptcp_cksum(ip, udp);
 
-	udp->dgram_cksum = 0;
-	udp->dgram_cksum = rte_ipv4_udptcp_cksum(ip, udp);
+    struct in_addr addr;
+    addr.s_addr = gSrcIp;
+    printf(" --> src: %s:%d, ", inet_ntoa(addr), ntohs(gSrcPort));
 
-#if ENABLE_PRINT
-	struct in_addr addr;
-	addr.s_addr = src_addr.ip;
-	printf(" --> src: %s:%d, ", inet_ntoa(addr), ntohs(src_addr.port));
+    addr.s_addr = gDstIp;
+    printf("dst: %s:%d\n", inet_ntoa(addr), ntohs(gDstPort));
 
-	addr.s_addr = dst_addr.ip;
-	printf("dst: %s:%d\n", inet_ntoa(addr), ntohs(dst_addr.port));
-
-#endif
-
-	return 0;
+    return 0;
 }
 
+/* ---- 构造基础 UDP mbuf ---- */
+struct rte_mbuf *ng_send_udp(struct rte_mempool *mbuf_pool, uint8_t *data, uint16_t length)
+{
+    const unsigned total_len = length + 42;
 
-struct rte_mbuf * send_udp(struct rte_mempool *mbuf_pool, uint8_t *data, uint16_t length,struct ether_addr src_addr,struct ether_addr dst_addr) {
+    struct rte_mbuf *mbuf = rte_pktmbuf_alloc(mbuf_pool);
+    if (!mbuf) {
+        rte_exit(EXIT_FAILURE, "rte_pktmbuf_alloc\n");
+    }
+    mbuf->pkt_len  = total_len;
+    mbuf->data_len = total_len;
 
-	// mempool --> mbuf
+    uint8_t *pktdata = rte_pktmbuf_mtod(mbuf, uint8_t *);
+    ng_encode_udp_pkt(pktdata, data, total_len);
 
-	const unsigned total_len = length + 42;
+    return mbuf;
+}
 
-	struct rte_mbuf *mbuf = rte_pktmbuf_alloc(mbuf_pool);
-	if (!mbuf) {
-		rte_exit(EXIT_FAILURE, "rte_pktmbuf_alloc\n");
-	}
-	mbuf->pkt_len = total_len;
-	mbuf->data_len = total_len;
+/* ---- UDP App 包编码 (带完整参数) ---- */
+int ng_encode_udp_apppkt(uint8_t *msg, uint32_t sip, uint32_t dip,
+    uint16_t sport, uint16_t dport, uint8_t *srcmac, uint8_t *dstmac,
+    unsigned char *data, uint16_t total_len)
+{
+    /* 1. 以太网头 */
+    struct rte_ether_hdr *eth = (struct rte_ether_hdr *)msg;
+    rte_memcpy(eth->src_addr.addr_bytes, srcmac, RTE_ETHER_ADDR_LEN);
+    rte_memcpy(eth->dst_addr.addr_bytes, dstmac, RTE_ETHER_ADDR_LEN);
+    eth->ether_type = htons(RTE_ETHER_TYPE_IPV4);
 
-	uint8_t *pktdata = rte_pktmbuf_mtod(mbuf, uint8_t*);
+    /* 2. IP 头 */
+    struct rte_ipv4_hdr *ip = (struct rte_ipv4_hdr *)(msg + sizeof(struct rte_ether_hdr));
+    ip->version_ihl     = 0x45;
+    ip->type_of_service = 0;
+    ip->total_length    = htons(total_len - sizeof(struct rte_ether_hdr));
+    ip->packet_id       = 0;
+    ip->fragment_offset = 0;
+    ip->time_to_live    = 64;
+    ip->next_proto_id   = IPPROTO_UDP;
+    ip->src_addr        = sip;
+    ip->dst_addr        = dip;
 
-	encode_udp_pkt(pktdata, data, total_len,src_addr,dst_addr);
+    ip->hdr_checksum = 0;
+    ip->hdr_checksum = rte_ipv4_cksum(ip);
 
-	return mbuf;
+    /* 3. UDP 头 */
+    struct rte_udp_hdr *udp = (struct rte_udp_hdr *)(msg +
+        sizeof(struct rte_ether_hdr) + sizeof(struct rte_ipv4_hdr));
+    udp->src_port = sport;
+    udp->dst_port = dport;
+    uint16_t udplen = total_len - sizeof(struct rte_ether_hdr) - sizeof(struct rte_ipv4_hdr);
+    udp->dgram_len = htons(udplen);
 
+    rte_memcpy((uint8_t *)(udp + 1), data, udplen);
+
+    udp->dgram_cksum = 0;
+    udp->dgram_cksum = rte_ipv4_udptcp_cksum(ip, udp);
+
+    return 0;
+}
+
+/* ---- 构造带参数的 UDP mbuf ---- */
+struct rte_mbuf *ng_udp_pkt(struct rte_mempool *mbuf_pool, uint32_t sip, uint32_t dip,
+    uint16_t sport, uint16_t dport, uint8_t *srcmac, uint8_t *dstmac,
+    uint8_t *data, uint16_t length)
+{
+    const unsigned total_len = length + 42;
+
+    struct rte_mbuf *mbuf = rte_pktmbuf_alloc(mbuf_pool);
+    if (!mbuf) {
+        rte_exit(EXIT_FAILURE, "rte_pktmbuf_alloc\n");
+    }
+    mbuf->pkt_len  = total_len;
+    mbuf->data_len = total_len;
+
+    uint8_t *pktdata = rte_pktmbuf_mtod(mbuf, uint8_t *);
+    ng_encode_udp_apppkt(pktdata, sip, dip, sport, dport, srcmac, dstmac,
+        data, total_len);
+
+    return mbuf;
 }

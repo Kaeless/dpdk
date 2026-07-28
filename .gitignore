@@ -5,6 +5,7 @@ out/
 target/
 *.o
 *.class
+hot100_cpp/*.exe
 
 # Node.js 项目
 node_modules/
