@@ -84,7 +84,7 @@ void arp_request_timer_cb(__attribute__((unused)) struct rte_timer *tim, void *a
 
         struct in_addr addr;
         addr.s_addr = dstip;
-        printf("arp ---> src: %s \n", inet_ntoa(addr));
+        UDP_LOG_INFO("arp timer ---> src: %s", inet_ntoa(addr));
 
         struct rte_mbuf *arpbuf = NULL;
         uint8_t *dstmac = ng_get_dst_macaddr(dstip);

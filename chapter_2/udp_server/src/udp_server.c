@@ -187,7 +187,7 @@ static ssize_t nsendto(int sockfd, const void *buf, size_t len,
 
     struct in_addr addr;
     addr.s_addr = ol->dip;
-    printf("nsendto ---> src: %s:%d \n", inet_ntoa(addr), ntohs(ol->dport));
+    UDP_LOG_INFO("nsendto ---> src: %s:%d", inet_ntoa(addr), ntohs(ol->dport));
 
     ol->data = rte_malloc("unsigned char *", len, 0);
     if (ol->data == NULL) {
@@ -234,7 +234,7 @@ static int udp_server_entry(__attribute__((unused)) void *arg)
 {
     int connfd = nsocket(AF_INET, SOCK_DGRAM, 0);
     if (connfd == -1) {
-        printf("sockfd failed\n");
+        UDP_LOG_ERR("sockfd failed");
         return -1;
     }
 
@@ -254,7 +254,7 @@ static int udp_server_entry(__attribute__((unused)) void *arg)
             (struct sockaddr *)&clientaddr, &addrlen) < 0) {
             continue;
         } else {
-            printf("recv from %s:%d, data:%s\n",
+            UDP_LOG_INFO("recv from %s:%d, data:%s",
                 inet_ntoa(clientaddr.sin_addr),
                 ntohs(clientaddr.sin_port), buffer);
             nsendto(connfd, buffer, strlen(buffer), 0,
@@ -275,6 +275,9 @@ int main(int argc, char *argv[])
     if (rte_eal_init(argc, argv) < 0) {
         rte_exit(EXIT_FAILURE, "Error with EAL init\n");
     }
+
+    /* ---- 1.2 日志系统初始化 (输出到 log/ 目录) ---- */
+    udp_log_init("log");
 
     /* ---- 1.5 解析应用层参数 (--local-ip, --local-port) ---- */
     /*
@@ -372,15 +375,15 @@ int main(int argc, char *argv[])
 
                     struct in_addr addr;
                     addr.s_addr = ahdr->arp_data.arp_tip;
-                    printf("arp ---> src: %s ", inet_ntoa(addr));
-
-                    addr.s_addr = gLocalIp;
-                    printf(" local: %s \n", inet_ntoa(addr));
+                    struct in_addr local_addr;
+                    local_addr.s_addr = gLocalIp;
+                    UDP_LOG_INFO("arp ---> src: %s  local: %s",
+                        inet_ntoa(addr), inet_ntoa(local_addr));
 
                     if (ahdr->arp_data.arp_tip == gLocalIp) {
 
                         if (ahdr->arp_opcode == rte_cpu_to_be_16(RTE_ARP_OP_REQUEST)) {
-                            printf("arp --> request, sending reply\n");
+                            UDP_LOG_INFO("arp --> request, sending reply");
 
                             struct rte_mbuf *arpbuf = ng_send_arp(mbuf_pool,
                                 RTE_ARP_OP_REPLY,
@@ -392,7 +395,7 @@ int main(int argc, char *argv[])
                                 (void **)&arpbuf, 1, NULL);
 
                         } else if (ahdr->arp_opcode == rte_cpu_to_be_16(RTE_ARP_OP_REPLY)) {
-                            printf("arp --> reply\n");
+                            UDP_LOG_INFO("arp --> reply");
 
                             struct arp_table *table = arp_table_instance();
                             uint8_t *hwaddr = ng_get_dst_macaddr(ahdr->arp_data.arp_sip);
@@ -418,9 +421,9 @@ int main(int argc, char *argv[])
                             for (iter = table->entries; iter != NULL; iter = iter->next) {
                                 struct in_addr a;
                                 a.s_addr = iter->ip;
-                                print_ethaddr("arp entry --> mac: ",
-                                    (struct rte_ether_addr *)iter->hwaddr);
-                                printf(" ip: %s \n", inet_ntoa(a));
+                                UDP_LOG_INFO("arp entry --> mac: %s ip: %s",
+                                    format_ethaddr((struct rte_ether_addr *)iter->hwaddr),
+                                    inet_ntoa(a));
                             }
                         }
                     }

@@ -19,6 +19,8 @@
 #include <string.h>
 #include <stdio.h>
 
+#include "log/udp_log.h"
+
 /* ---- 常量定义 ---- */
 #define NUM_MBUFS            (4096 - 1)
 #define BURST_SIZE           32
@@ -33,7 +35,7 @@
 /* ---- 调试定义 ---- */
 #define ENABLE_ARP_TIMER        0
 #define ENABLE_ARP              1
-#define ARGV_PARSER             0
+#define ARGV_PARSER             1
 
 /* ---- 全局端口 ID ---- */
 extern int gDpdkPortId;
@@ -94,8 +96,8 @@ struct offload {
 /* 端口初始化 */
 void ng_init_port(struct rte_mempool *mbuf_pool);
 
-/* MAC 地址打印 */
-void print_ethaddr(const char *name, const struct rte_ether_addr *eth_addr);
+/* MAC 地址格式化 (返回静态缓冲区指针, 类似 inet_ntoa) */
+const char *format_ethaddr(const struct rte_ether_addr *eth_addr);
 
 /* Ring buffer 单例 */
 struct inout_ring *ringInstance(void);

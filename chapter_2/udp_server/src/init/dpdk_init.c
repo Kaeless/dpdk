@@ -1,5 +1,9 @@
 #include "dpdk_init.h"
 
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <time.h>
+
 /* ---- 全局变量定义 ---- */
 int      gDpdkPortId = 0;
 uint32_t gLocalIp = 0;  /* 由 --local-ip 参数设置，默认 192.168.0.115 */
@@ -62,12 +66,12 @@ void ng_init_port(struct rte_mempool *mbuf_pool)
     }
 }
 
-/* ---- MAC 地址打印 ---- */
-void print_ethaddr(const char *name, const struct rte_ether_addr *eth_addr)
+/* ---- MAC 地址格式化 (返回静态缓冲区, 类似 inet_ntoa) ---- */
+const char *format_ethaddr(const struct rte_ether_addr *eth_addr)
 {
-    char buf[RTE_ETHER_ADDR_FMT_SIZE];
+    static char buf[RTE_ETHER_ADDR_FMT_SIZE];
     rte_ether_format_addr(buf, RTE_ETHER_ADDR_FMT_SIZE, eth_addr);
-    printf("%s%s", name, buf);
+    return buf;
 }
 
 /* ---- FD 分配 (从 3 开始, 0/1/2 为标准 stdin/stdout/stderr) ---- */
@@ -123,9 +127,9 @@ void app_parse_args(int argc, char *argv[])
             struct in_addr addr;
             if (inet_aton(ip_str, &addr) != 0) {
                 gLocalIp = addr.s_addr;
-                printf("应用参数: local-ip = %s (0x%08x)\n", ip_str, gLocalIp);
+                UDP_LOG_INFO("应用参数: local-ip = %s (0x%08x)", ip_str, gLocalIp);
             } else {
-                printf("无效 IP 地址: %s，使用默认值\n", ip_str);
+                UDP_LOG_WARNING("无效 IP 地址: %s，使用默认值", ip_str);
             }
             continue;
         }
@@ -141,7 +145,7 @@ void app_parse_args(int argc, char *argv[])
             int port = atoi(port_str);
             if (port > 0 && port <= 65535) {
                 gAppPort = (uint16_t)port;
-                printf("应用参数: local-port = %d\n", port);
+                UDP_LOG_INFO("应用参数: local-port = %d", port);
             }
         }
     }
@@ -151,7 +155,7 @@ void app_parse_args(int argc, char *argv[])
         gLocalIp = DEFAULT_LOCAL_IP;
         struct in_addr addr;
         addr.s_addr = gLocalIp;
-        printf("未指定 --local-ip，使用默认: %s\n", inet_ntoa(addr));
+        UDP_LOG_INFO("未指定 --local-ip，使用默认: %s", inet_ntoa(addr));
     }
     if (gAppPort == 0) {
         gAppPort = DEFAULT_LOCAL_PORT;
@@ -162,4 +166,61 @@ void app_parse_args(int argc, char *argv[])
 uint16_t app_get_port(void)
 {
     return gAppPort ? gAppPort : DEFAULT_LOCAL_PORT;
+}
+
+/* ---- 日志系统初始化 ---- */
+/*
+ * udp_log_init — 将 DPDK 原生日志输出重定向到文件
+ * @log_dir: 日志目录 (例如 "log")
+ * return:   0 成功, -1 失败
+ *
+ * 功能:
+ *   1. 注册自定义日志类型 udp_server
+ *   2. 创建日志目录 (如不存在)
+ *   3. 将日志输出重定向到 log_dir/udp_server_YYYYMMDD_HHMMSS.log
+ *   4. 设置全局日志级别为 INFO
+ */
+int udp_log_init(const char *log_dir)
+{
+    char log_path[256];
+
+    /* 注册自定义日志类型并设置级别 */
+    int log_type = rte_log_register_type_and_pick_level(
+        "udp_server", RTE_LOG_INFO);
+    if (log_type < 0) {
+        fprintf(stderr, "Failed to register udp_server log type\n");
+        return -1;
+    }
+
+    /* 创建日志目录 (如不存在则创建, 已存在不报错) */
+    if (mkdir(log_dir, 0755) != 0) {
+        struct stat st;
+        if (stat(log_dir, &st) != 0 || !S_ISDIR(st.st_mode)) {
+            fprintf(stderr, "Failed to create log directory: %s\n", log_dir);
+            return -1;
+        }
+    }
+
+    /* 生成带时间戳的日志文件名 */
+    time_t now = time(NULL);
+    struct tm tm_now;
+    localtime_r(&now, &tm_now);
+
+    snprintf(log_path, sizeof(log_path),
+        "%s/udp_server_%04d%02d%02d_%02d%02d%02d.log",
+        log_dir,
+        tm_now.tm_year + 1900, tm_now.tm_mon + 1, tm_now.tm_mday,
+        tm_now.tm_hour, tm_now.tm_min, tm_now.tm_sec);
+
+    /* 打开日志文件并重定向 DPDK 日志流 */
+    FILE *log_file = fopen(log_path, "w");
+    if (log_file == NULL) {
+        fprintf(stderr, "Failed to open log file: %s\n", log_path);
+        return -1;
+    }
+
+    rte_openlog_stream(log_file);
+    rte_log_set_global_level(RTE_LOG_INFO);
+
+    return 0;
 }

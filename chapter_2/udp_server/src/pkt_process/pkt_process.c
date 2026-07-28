@@ -27,14 +27,14 @@ int pkt_process(void *arg)
 
                 struct in_addr addr;
                 addr.s_addr = ahdr->arp_data.arp_tip;
-                printf("arp ---> src: %s ", inet_ntoa(addr));
-
-                addr.s_addr = gLocalIp;
-                printf(" local: %s \n", inet_ntoa(addr));
+                struct in_addr local_addr;
+                local_addr.s_addr = gLocalIp;
+                UDP_LOG_INFO("arp ---> src: %s  local: %s",
+                    inet_ntoa(addr), inet_ntoa(local_addr));
 
                 if (ahdr->arp_data.arp_tip == gLocalIp) {
                     if (ahdr->arp_opcode == rte_cpu_to_be_16(RTE_ARP_OP_REQUEST)) {
-                        printf("arp --> request\n");
+                        UDP_LOG_INFO("arp --> request");
 
                         struct rte_mbuf *arpbuf = ng_send_arp(mbuf_pool,
                             RTE_ARP_OP_REPLY,
@@ -46,7 +46,7 @@ int pkt_process(void *arg)
                             (void **)&arpbuf, 1, NULL);
 
                     } else if (ahdr->arp_opcode == rte_cpu_to_be_16(RTE_ARP_OP_REPLY)) {
-                        printf("arp --> reply\n");
+                        UDP_LOG_INFO("arp --> reply");
 
                         struct arp_table *table = arp_table_instance();
                         uint8_t *hwaddr = ng_get_dst_macaddr(ahdr->arp_data.arp_sip);
@@ -72,9 +72,9 @@ int pkt_process(void *arg)
                         for (iter = table->entries; iter != NULL; iter = iter->next) {
                             struct in_addr a;
                             a.s_addr = iter->ip;
-                            print_ethaddr("arp table --> mac: ",
-                                (struct rte_ether_addr *)iter->hwaddr);
-                            printf(" ip: %s \n", inet_ntoa(a));
+                            UDP_LOG_INFO("arp table --> mac: %s ip: %s",
+                                format_ethaddr((struct rte_ether_addr *)iter->hwaddr),
+                                inet_ntoa(a));
                         }
 
                         rte_pktmbuf_free(mbufs[i]);
@@ -102,12 +102,12 @@ int pkt_process(void *arg)
 
                 struct in_addr addr;
                 addr.s_addr = iphdr->src_addr;
-                printf("icmp ---> src: %s ", inet_ntoa(addr));
+                struct in_addr dst_addr;
+                dst_addr.s_addr = iphdr->dst_addr;
 
                 if (icmphdr->icmp_type == RTE_IP_ICMP_ECHO_REQUEST) {
-                    addr.s_addr = iphdr->dst_addr;
-                    printf(" local: %s , type : %d\n",
-                        inet_ntoa(addr), icmphdr->icmp_type);
+                    UDP_LOG_INFO("icmp ---> src: %s  local: %s , type : %d",
+                        inet_ntoa(addr), inet_ntoa(dst_addr), icmphdr->icmp_type);
 
                     struct rte_mbuf *txbuf = ng_send_icmp(mbuf_pool,
                         ehdr->src_addr.addr_bytes,
@@ -137,7 +137,7 @@ static int udp_process_pkt(struct rte_mbuf *udpmbuf)
 
     struct in_addr addr;
     addr.s_addr = iphdr->src_addr;
-    printf("udp_process ---> src: %s:%d \n",
+    UDP_LOG_INFO("udp_process ---> src: %s:%d",
         inet_ntoa(addr), ntohs(udphdr->src_port));
 
     struct localhost *host = get_hostinfo_fromip_port(iphdr->dst_addr,
@@ -192,7 +192,7 @@ static int udp_out(struct rte_mempool *mbuf_pool)
 
         struct in_addr addr;
         addr.s_addr = ol->dip;
-        printf("udp_out ---> src: %s:%d \n",
+        UDP_LOG_INFO("udp_out ---> src: %s:%d",
             inet_ntoa(addr), ntohs(ol->dport));
 
         uint8_t *dstmac = ng_get_dst_macaddr(ol->dip);

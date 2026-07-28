@@ -39,10 +39,11 @@ int ng_encode_udp_pkt(uint8_t *msg, unsigned char *data, uint16_t total_len)
 
     struct in_addr addr;
     addr.s_addr = gSrcIp;
-    printf(" --> src: %s:%d, ", inet_ntoa(addr), ntohs(gSrcPort));
-
-    addr.s_addr = gDstIp;
-    printf("dst: %s:%d\n", inet_ntoa(addr), ntohs(gDstPort));
+    struct in_addr dst_addr;
+    dst_addr.s_addr = gDstIp;
+    UDP_LOG_INFO("udp_encode --> src: %s:%d, dst: %s:%d",
+        inet_ntoa(addr), ntohs(gSrcPort),
+        inet_ntoa(dst_addr), ntohs(gDstPort));
 
     return 0;
 }
